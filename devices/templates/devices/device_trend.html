@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+  <meta charset="UTF-8">
+  <title>ترند دستگاه {{ device.name }}</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <h2>ترند تولید - {{ device.name }}</h2>
+  <label for="timeframe">نمایش برای:</label>
+  <label for="timeframe">نمایش برای:</label>
+  <select id="timeframe">
+    <option value="0.083">5 دقیقه اخیر</option>
+    <option value="0.166">10 دقیقه اخیر</option>
+    <option value="0.5">30 دقیقه اخیر</option>
+    <option value="1">1 ساعت اخیر</option>
+    <option value="6">6 ساعت اخیر</option>
+    <option value="24">24 ساعت اخیر</option>
+  </select>
+  
+
+  <canvas id="trendChart" width="600" height="300"></canvas>
+
+  <script>
+    const deviceId = {{ device.id }};
+    const chartCtx = document.getElementById('trendChart').getContext('2d');
+    let chart;
+
+    async function loadTrendData(hours = 1) {
+      const res = await fetch(`/api/device/${deviceId}/trend-data/?hours=${hours}`);
+      const data = await res.json();
+
+      const labels = data.map(d => new Date(d.minute).toLocaleTimeString());
+      const values = data.map(d => d.production);
+
+      if (chart) chart.destroy();
+      chart = new Chart(chartCtx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'میزان تولید (متر)',
+            data: values,
+            fill: true,
+            borderColor: 'blue',
+            tension: 0.3
+          }]
+        }
+      });
+    }
+
+    document.getElementById('timeframe').addEventListener('change', (e) => {
+      loadTrendData(e.target.value);
+    });
+
+    loadTrendData();
+  </script>
+</body>
+</html>
