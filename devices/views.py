@@ -25,14 +25,27 @@ def device_efficiency(request):
     data = []
     one_minute_ago = now() - timedelta(minutes=1)
     for device in Device.objects.all():
-        total_pulses = PulseLog.objects.filter(device=device, timestamp__gte=one_minute_ago).aggregate(total=Sum('pulse_count'))['total'] or 0
+        total_pulses = PulseLog.objects.filter(
+            device=device,
+            timestamp__gte=one_minute_ago
+        ).aggregate(total=Sum('pulse_count'))['total'] or 0
+
+        # بررسی آخرین پکت
+        latest_log = PulseLog.objects.filter(device=device).order_by('-timestamp').first()
+        is_online = False
+        if latest_log and (now() - latest_log.timestamp).total_seconds() <= 60:
+            is_online = True
+
         production = total_pulses * device.pulse_to_meter_factor
         efficiency = (production / device.optimal_production_per_min) * 100 if device.optimal_production_per_min > 0 else 0
+
         data.append({
             "device": device.name,
             "efficiency": round(efficiency, 1),
-            "id": device.id
+            "id": device.id,
+            "is_online": is_online
         })
+
     return Response(data)
 
 def dashboard(request):
